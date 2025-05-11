@@ -1,14 +1,19 @@
+// lib/app/screens/home/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:trend_press/app/components/BottomNavigationBar.dart';
-import '../../theme/colors.dart';
-import '../../../../services/news_api_service.dart';
-import '../../components/greeting_header.dart';
-import '../home/NewsDetailScreen.dart';
-
-
+import 'package:trend_press/app/components/empty_state_widget.dart';
+import 'package:trend_press/app/components/error_widget.dart';
+import 'package:trend_press/app/components/greeting_header.dart';
+import 'package:trend_press/app/components/home/category_selector.dart';
+import 'package:trend_press/app/components/home/latest_article_card.dart';
+import 'package:trend_press/app/components/home/search_bar.dart';
+import 'package:trend_press/app/components/home/section_header.dart';
+import 'package:trend_press/app/components/home/trending_article_card.dart';
+import 'package:trend_press/app/theme/colors.dart';
+import 'package:trend_press/app/views/home/NewsDetailScreen.dart';
+import '../../../services/news_api_service.dart';
+import '../../utils/constants.dart';
+import '../../models/article.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,20 +25,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final NewsApiService _newsApiService = NewsApiService();
   final TextEditingController _searchController = TextEditingController();
 
-  late Future<List<dynamic>> _trendingArticles;
-  late Future<List<dynamic>> _latestArticles;
+  late Future<List<Article>> _trendingArticles;
+  late Future<List<Article>> _latestArticles;
   
   // Navigation bar state
   int _currentNavIndex = 0;
 
-  final List<String> _allCategories = [
-    'All',
-    'Business',
-    'Finance',
-    'Tech',
-    'Food',
-    'Crypto',
-  ];
+  final List<String> _allCategories = NewsCategories.all;
   Set<String> _selectedCategories = {'All'};
   String _searchQuery = '';
   bool _isLoading = false;
@@ -57,11 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       if (_searchQuery.isNotEmpty) {
-        _trendingArticles = _fetchSearchArticles(_searchQuery);
-        _latestArticles = _fetchSearchArticles(_searchQuery);
+        _trendingArticles = _newsApiService.fetchSearchArticles(_searchQuery);
+        _latestArticles = _newsApiService.fetchSearchArticles(_searchQuery);
       } else if (_selectedCategories.contains('All')) {
         _trendingArticles = _newsApiService.fetchTrendingArticles();
-        _latestArticles = _fetchKeywordArticles();
+        _latestArticles = _newsApiService.fetchKeywordArticles();
       } else {
         List<String> categories = _selectedCategories.toList();
         
@@ -69,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
           categories: categories,
         );
         
-        _latestArticles = _fetchKeywordArticles();
+        _latestArticles = _newsApiService.fetchKeywordArticles();
       }
     } catch (e) {
       print('Error fetching articles: $e');
@@ -79,50 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  // Method to fetch articles based on search query
-  Future<List<dynamic>> _fetchSearchArticles(String query) async {
-    final String apiKey = dotenv.env['API_KEY']!;
-  final String baseUrl = dotenv.env['API_BASE_URL']!;
-  final String url = '${baseUrl}everything?q=$query&apiKey=$apiKey';
-    
-    try {
-      final response = await http.get(Uri.parse(url));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['articles'] ?? [];
-      } else {
-        print('API Error for search articles: ${response.statusCode} - ${response.body}');
-        return [];
-      }
-    } catch (e) {
-      print('Exception in _fetchSearchArticles: $e');
-      return [];
-    }
-  }
-  
-  // Method to fetch keyword articles
-  Future<List<dynamic>> _fetchKeywordArticles() async {
-    final String apiKey = dotenv.env['API_KEY']!;
-    final String baseUrl = dotenv.env['API_BASE_URL']!;
-    final String url = '${baseUrl}everything?q=keyword&apiKey=$apiKey';
-    
-    try {
-      final response = await http.get(Uri.parse(url));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['articles'] ?? [];
-      } else {
-        print('API Error for keyword articles: ${response.statusCode} - ${response.body}');
-        return [];
-      }
-    } catch (e) {
-      print('Exception in _fetchKeywordArticles: $e');
-      return [];
     }
   }
 
@@ -172,6 +126,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchArticles();
   }
   
+  void _resetFilters() {
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+      _selectedCategories = {'All'};
+    });
+    _fetchArticles();
+  }
+  
   // Handle navigation bar item selection
   void _onNavItemTapped(int index) {
     setState(() {
@@ -204,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 SizedBox(height: height * 0.02),
                 
+                // Greeting header
                 NewsHeader(
                   isSmall: isSmall,
                   showAvatar: false, 
@@ -212,137 +176,48 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(height: height * 0.03),
 
                 // Search bar
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.04),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 5,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: Colors.grey),
-                      SizedBox(width: width * 0.02),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: const InputDecoration(
-                            hintText: "Search news articles...",
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) => _onSearch(),
-                        ),
-                      ),
-                      _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey),
-                              onPressed: _clearSearch,
-                            )
-                          : IconButton(
-                              icon: const Icon(Icons.search, color: AppColors.lightPrimary),
-                              onPressed: _onSearch,
-                            ),
-                    ],
-                  ),
+                NewsSearchBar(
+                  controller: _searchController,
+                  onSearch: _onSearch,
+                  onClear: _clearSearch,
                 ),
 
                 SizedBox(height: height * 0.025),
 
                 // Categories
-                SizedBox(
-                  height: 40,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _allCategories.length,
-                    itemBuilder: (context, index) {
-                      final category = _allCategories[index];
-                      final isSelected = _selectedCategories.contains(category);
-
-                      return GestureDetector(
-                        onTap: () => _onCategoryTapped(category),
-                        child: Container(
-                          margin: EdgeInsets.only(right: width * 0.02),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: width * 0.04,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.lightPrimary
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.lightPrimary),
-                          ),
-                          child: Center(
-                            child: Text(
-                              category,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : AppColors.lightPrimary,
-                                fontSize: isSmall ? 12 : 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                CategorySelector(
+                  categories: _allCategories,
+                  selectedCategories: _selectedCategories,
+                  onCategoryTapped: _onCategoryTapped,
+                  isSmall: isSmall,
                 ),
 
                 SizedBox(height: height * 0.03),
 
                 // Search active indicator
                 if (_searchQuery.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightPrimary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, size: 16, color: AppColors.lightPrimary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Showing results for "$_searchQuery"',
-                            style: const TextStyle(
-                              color: AppColors.lightPrimary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _clearSearch,
-                          child: const Icon(Icons.close, size: 16, color: AppColors.lightPrimary),
-                        ),
-                      ],
-                    ),
+                  SearchActiveIndicator(
+                    searchQuery: _searchQuery,
+                    onClear: _clearSearch,
                   ),
                   SizedBox(height: height * 0.02),
                 ],
 
-                // Top Section Title (Changes based on search)
-                _buildSectionHeader(
-                  _searchQuery.isNotEmpty ? "Top Results" : "Top Headlines", 
-                  isSmall
+                // Top Section Title
+                SectionHeader(
+                  title: _searchQuery.isNotEmpty ? "Top Results" : "Top Headlines",
+                  isSmall: isSmall,
                 ),
+                
                 SizedBox(height: height * 0.015),
 
+                // Trending articles section
                 _isLoading
                     ? SizedBox(
                         height: height * 0.2,
                         child: const Center(child: CircularProgressIndicator()),
                       )
-                    : FutureBuilder<List<dynamic>>(
+                    : FutureBuilder<List<Article>>(
                         future: _trendingArticles,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -351,9 +226,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: const Center(child: CircularProgressIndicator()),
                             );
                           } else if (snapshot.hasError) {
-                            return _buildErrorWidget(height, snapshot.error.toString());
+                            return NewsErrorWidget(
+                              height: height * 0.2,
+                              errorMessage: snapshot.error.toString(),
+                              onRetry: _fetchArticles,
+                            );
                           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            return _buildEmptyStateWidget(height);
+                            return EmptyStateWidget(
+                              height: height,
+                              searchQuery: _searchQuery,
+                              onResetFilters: _resetFilters,
+                              showResetButton: _searchQuery.isNotEmpty || 
+                                              !_selectedCategories.contains('All'),
+                            );
                           } else {
                             final articles = snapshot.data!;
                             return SizedBox(
@@ -363,13 +248,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                 itemCount: articles.length > 10 ? 10 : articles.length,
                                 itemBuilder: (context, index) {
                                   final article = articles[index];
-                                  return _buildTrendingCard(
-                                    context,
-                                    article['title'] ?? 'No title available',
-                                    article['urlToImage'] ?? 'https://via.placeholder.com/300',
-                                    article['source']?['name'] ?? 'Unknown source',
-                                    article['publishedAt'] ?? '',
-                                    article,  
+                                  return TrendingArticleCard(
+                                    article: article,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => NewsDetailScreen(
+                                            articleData: article.toJson(),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),
@@ -380,11 +270,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 SizedBox(height: height * 0.03),
 
-                // Latest Section (Changes title based on search)
-                _buildSectionHeader(
-                  _searchQuery.isNotEmpty ? "More Articles" : "Latest News", 
-                  isSmall
+                // Latest Section
+                SectionHeader(
+                  title: _searchQuery.isNotEmpty ? "More Articles" : "Latest News",
+                  isSmall: isSmall,
                 ),
+                
                 SizedBox(height: height * 0.015),
 
                 // Latest Cards
@@ -393,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: height * 0.2,
                         child: const Center(child: CircularProgressIndicator()),
                       )
-                    : FutureBuilder<List<dynamic>>(
+                    : FutureBuilder<List<Article>>(
                         future: _latestArticles,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -402,9 +293,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: const Center(child: CircularProgressIndicator()),
                             );
                           } else if (snapshot.hasError) {
-                            return _buildErrorWidget(height, snapshot.error.toString());
+                            return NewsErrorWidget(
+                              height: height * 0.2,
+                              errorMessage: snapshot.error.toString(),
+                              onRetry: _fetchArticles,
+                            );
                           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            return _buildEmptyStateWidget(height);
+                            return EmptyStateWidget(
+                              height: height,
+                              searchQuery: _searchQuery,
+                              onResetFilters: _resetFilters,
+                              showResetButton: _searchQuery.isNotEmpty || 
+                                              !_selectedCategories.contains('All'),
+                            );
                           } else {
                             final articles = snapshot.data!;
                             return ListView.separated(
@@ -414,13 +315,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               separatorBuilder: (context, index) => const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final article = articles[index];
-                                return _buildLatestCard(
-                                  context,
-                                  article['title'] ?? 'No title available',
-                                  article['urlToImage'] ?? 'https://via.placeholder.com/300',
-                                  article['source']?['name'] ?? 'Unknown source',
-                                  article['publishedAt'] ?? '',
-                                  article,  
+                                return LatestArticleCard(
+                                  article: article,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => NewsDetailScreen(
+                                          articleData: article.toJson(),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
                             );
@@ -435,303 +341,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildErrorWidget(double height, String errorMessage) {
-    return SizedBox(
-      height: height * 0.2, 
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 40, color: Colors.red),
-            const SizedBox(height: 8),
-            const Text(
-              'Failed to load articles',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              errorMessage,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-            TextButton(
-              onPressed: _fetchArticles,
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyStateWidget(double height) {
-    return SizedBox(
-      height: height * 0.2,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.article_outlined, size: 40, color: Colors.grey),
-            const SizedBox(height: 8),
-            Text(
-              _searchQuery.isNotEmpty 
-                ? 'No results found for "$_searchQuery"' 
-                : 'No articles found',
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            if (_searchQuery.isNotEmpty || !_selectedCategories.contains('All'))
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _searchController.clear();
-                    _searchQuery = '';
-                    _selectedCategories = {'All'};
-                  });
-                  _fetchArticles();
-                },
-                child: const Text('Reset filters'),
-              )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, bool isSmall) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: isSmall ? 16 : 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrendingCard(
-    BuildContext context,
-    String title,
-    String imageUrl,
-    String source,
-    String publishedAt,
-    dynamic article, 
-  ) {
-    final width = MediaQuery.of(context).size.width;
-    final timeAgo = _getTimeAgo(publishedAt);
-    
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NewsDetailScreen(article: article),
-          ),
-        );
-      },
-      child: Container(
-        width: width * 0.7,
-        margin: EdgeInsets.only(right: width * 0.04),
-        decoration: BoxDecoration(
-          color: AppColors.lightCard,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              child: Image.network(
-                imageUrl,
-                height: 140,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 140,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 40),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightAccent.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          source,
-                          style: TextStyle(
-                            color: AppColors.lightAccent,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      const Icon(Icons.schedule, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(timeAgo, style: const TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLatestCard(
-    BuildContext context,
-    String title,
-    String imageUrl,
-    String source,
-    String publishedAt,
-    dynamic article, 
-  ) {
-    final width = MediaQuery.of(context).size.width;
-    final timeAgo = _getTimeAgo(publishedAt);
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NewsDetailScreen(article: article),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.lightCard,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imageUrl,
-                width: width * 0.22,
-                height: width * 0.22,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: width * 0.22,
-                    height: width * 0.22,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 30),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    source,
-                    style: TextStyle(
-                      color: AppColors.lightAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.schedule, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(timeAgo, style: const TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  String _getTimeAgo(String publishedAt) {
-    if (publishedAt.isEmpty) return "Unknown time";
-    
-    try {
-      final publishDate = DateTime.parse(publishedAt);
-      final now = DateTime.now();
-      final difference = now.difference(publishDate);
-      
-      if (difference.inDays > 0) {
-        return "${difference.inDays}d ago";
-      } else if (difference.inHours > 0) {
-        return "${difference.inHours}h ago";
-      } else if (difference.inMinutes > 0) {
-        return "${difference.inMinutes}m ago";
-      } else {
-        return "Just now";
-      }
-    } catch (e) {
-      return "Unknown time";
-    }
   }
 }

@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/colors.dart';
-import '../../components/greeting_header.dart'; 
 
 class NewsDetailScreen extends StatefulWidget {
   final Map<String, dynamic> article;
