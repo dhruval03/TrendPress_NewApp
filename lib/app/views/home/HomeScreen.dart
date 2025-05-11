@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose(); // Dispose controllers to prevent memory leaks
+    _searchController.dispose(); 
     super.dispose();
   }
 
@@ -56,32 +56,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // For Trending section
       if (_searchQuery.isNotEmpty) {
-        // If search query exists, use it for both sections
         _trendingArticles = _fetchSearchArticles(_searchQuery);
         _latestArticles = _fetchSearchArticles(_searchQuery);
       } else if (_selectedCategories.contains('All')) {
-        // If 'All' is selected and no search query, fetch trending articles
         _trendingArticles = _newsApiService.fetchTrendingArticles();
-        // For latest section, use the specific 'keyword' endpoint
         _latestArticles = _fetchKeywordArticles();
       } else {
-        // Handle multiple selected categories
         List<String> categories = _selectedCategories.toList();
         
-        // Fetch articles with categories
         _trendingArticles = _newsApiService.fetchArticles(
           categories: categories,
         );
         
-        // Always use keyword articles for latest section if no search
         _latestArticles = _fetchKeywordArticles();
       }
     } catch (e) {
       print('Error fetching articles: $e');
     } finally {
-      // Ensure loading state is updated even if there's an error
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -185,15 +177,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentNavIndex = index;
     });
-    
-    // Here you would typically handle navigation to different screens
-    // For now, we'll just print a message
-    print('Navigated to tab $index');
-    
-    // Example of how you might implement actual navigation:
-    // if (index != 0) { // If not Home tab
-    //   Navigator.pushReplacementNamed(context, getRouteForIndex(index));
-    // }
   }
 
   @override
@@ -221,10 +204,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 SizedBox(height: height * 0.02),
                 
-                // Using the new header component
                 NewsHeader(
                   isSmall: isSmall,
-                  showAvatar: false, // Set to true if you want to show avatar
+                  showAvatar: false, 
                 ),
 
                 SizedBox(height: height * 0.03),
@@ -355,7 +337,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: height * 0.015),
 
-                // Trending/Search Results List
                 _isLoading
                     ? SizedBox(
                         height: height * 0.2,
@@ -388,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     article['urlToImage'] ?? 'https://via.placeholder.com/300',
                                     article['source']?['name'] ?? 'Unknown source',
                                     article['publishedAt'] ?? '',
-                                    article,  // Pass the full article object
+                                    article,  
                                   );
                                 },
                               ),
@@ -439,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   article['urlToImage'] ?? 'https://via.placeholder.com/300',
                                   article['source']?['name'] ?? 'Unknown source',
                                   article['publishedAt'] ?? '',
-                                  article,  // Pass the full article object
+                                  article,  
                                 );
                               },
                             );
@@ -447,7 +428,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       ),
                 
-                // Add padding at the bottom to account for navigation bar
                 SizedBox(height: height * 0.08),
               ],
             ),
@@ -540,14 +520,13 @@ class _HomeScreenState extends State<HomeScreen> {
     String imageUrl,
     String source,
     String publishedAt,
-    dynamic article, // Full article data
+    dynamic article, 
   ) {
     final width = MediaQuery.of(context).size.width;
     final timeAgo = _getTimeAgo(publishedAt);
     
     return GestureDetector(
       onTap: () {
-        // Directly navigate using the full article data we received
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -645,14 +624,13 @@ class _HomeScreenState extends State<HomeScreen> {
     String imageUrl,
     String source,
     String publishedAt,
-    dynamic article, // Full article data
+    dynamic article, 
   ) {
     final width = MediaQuery.of(context).size.width;
     final timeAgo = _getTimeAgo(publishedAt);
 
     return GestureDetector(
       onTap: () {
-        // Directly navigate using the full article data we received
         Navigator.push(
           context,
           MaterialPageRoute(

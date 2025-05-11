@@ -95,12 +95,10 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Content
             SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Hero image
                   Stack(
                     children: [
                       Image.network(
@@ -118,7 +116,6 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           );
                         },
                       ),
-                      // Gradient overlay for better text visibility
                       Container(
                         height: height * 0.35,
                         decoration: BoxDecoration(
@@ -133,7 +130,6 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           ),
                         ),
                       ),
-                      // Back button with transparent background
                       Positioned(
                         top: 16,
                         left: 16,
@@ -153,7 +149,6 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           ),
                         ),
                       ),
-                      // Source badge at bottom left
                       Positioned(
                         bottom: 16,
                         left: 16,

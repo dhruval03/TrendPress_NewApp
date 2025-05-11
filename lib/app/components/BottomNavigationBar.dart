@@ -18,10 +18,10 @@ class CustomBottomNavigationBar extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: (index) {
-        if (index == 1) { // Bookmark is at index 1
-          Get.toNamed(AppRoutes.bookmark); // Navigate to bookmark screen
+        if (index == 1) { 
+          Get.toNamed(AppRoutes.bookmark); 
         } else {
-          onTap(index); // Handle other tabs normally
+          onTap(index); 
         }
       },
       selectedItemColor: AppColors.lightPrimary,

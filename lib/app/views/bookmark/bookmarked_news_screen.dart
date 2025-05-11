@@ -150,12 +150,11 @@ class _BookmarkedNewsScreenState extends State<BookmarkedNewsScreen> {
               },
             ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        currentIndex: 1, // Set to 1 since we're on the Bookmarks screen
+        currentIndex: 1, 
         onTap: (index) {
-          if (index == 0) { // If Home is tapped
-            Get.offAllNamed(AppRoutes.home); // Navigate to home screen
+          if (index == 0) { 
+            Get.offAllNamed(AppRoutes.home); 
           }
-          // No need to handle index 1 (Bookmarks) since we're already there
         },
       ),
     );

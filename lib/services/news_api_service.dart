@@ -13,8 +13,8 @@ class NewsApiService {
     'sports': 'sports', 
     'food': 'health', 
     'tech': 'technology',
-    'finance': 'business', // Map finance to business
-    'crypto': 'business',  // Map crypto to business
+    'finance': 'business', 
+    'crypto': 'business',  
   };
 
   // Main method to fetch articles by search query
@@ -52,20 +52,16 @@ class NewsApiService {
     List<String>? categories,
   }) async {
     try {
-      // If there's a search query, prioritize it
       if (searchQuery?.isNotEmpty == true) {
         return fetchArticlesBySearch(searchQuery!);
       }
       
-      // Default to general if no category is specified
       final effectiveCategories = (categories?.isNotEmpty == true) 
           ? categories!
           : ['general'];
       
-      // Initialize an empty list to store all articles
       List<dynamic> allArticles = [];
       
-      // Make API requests for each category
       for (final category in effectiveCategories) {
         String newsApiCategory = _categoryMapping[category.toLowerCase()] ?? 'general';
         
@@ -168,7 +164,6 @@ class NewsApiService {
         final data = json.decode(response.body);
         final articles = data['articles'] ?? [];
         
-        // Add category to each article
         for (var article in articles) {
           if (article is Map) {
             article['category'] = category;
